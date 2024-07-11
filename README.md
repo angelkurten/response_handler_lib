@@ -1,80 +1,119 @@
 
-# response_handler
+# response_handler_lib
 
-A package for handling responses with potential errors and generic data.
+A package for handling responses with potential errors and generic data, including predefined and custom error handling. This package is used as a complement to exceptions to have more control over business logic errors.
 
 ## Features
 
-- Custom `Response` class for handling responses with success status, errors, and data.
-- Custom `Error` class for defining error codes and messages.
-- Custom `ResponseError` exception for handling response-related errors.
-- Utilities for adding errors, checking success status, and retrieving error messages and codes.
+- Custom `Response` class for handling responses with errors and data.
+- Custom `ErrorResponse` class for defining error codes and messages.
+- `ErrorResponseConfig` class for managing predefined and custom error configurations.
+- `PredefinedErrorCodes` enum for predefined error codes.
+- Utilities for adding errors, checking for errors, and retrieving error messages and codes.
+- Convert `Response` to JSON format.
 
 ## Installation
 
-You can install `response_handler` via pip:
+You can install `response_handler_lib` via pip:
 
 ```sh
-pip install response_handler
+pip install response_handler_lib
 ```
 
 ## Usage
 
 ### Importing the Package
 
-To use the `Response` class and related utilities, import them from the `response_handler` package:
+To use the `Response` class and related utilities, import them from the `response_handler_lib` package:
 
 ```python
-from response_handler import Response, Error, ResponseError
+from response_handler_lib import Response, ErrorResponseConfig, PredefinedErrorCodes
 ```
 
 ### Creating a Successful Response
 
-Create a `Response` object with `success` set to `True` and provide any data:
+Create a `Response` object and provide any data:
 
 ```python
-response = Response(success=True, data="Some data")
-if response.is_successful:
+response = Response(data="Some data")
+if not response.has_errors:
     print("Response is successful")
     print("Data:", response.data)
 ```
 
-### Creating a Failed Response
+### Creating a Failed Response with Predefined Errors
 
-Create a `Response` object with `success` set to `False`:
-
-```python
-response = Response(success=False)
-if not response.is_successful:
-    print("Response failed")
-```
-
-### Adding Errors to a Response
-
-Add errors to a response using the `add_error` method:
+Add predefined errors to a response using the `add_error` method:
 
 ```python
-response = Response(success=False)
-response.add_error(404, "Not Found")
-response.add_error(500, "Internal Server Error")
+response = Response()
+response.add_error(PredefinedErrorCodes.VAL_ERR.value)
+response.add_error(PredefinedErrorCodes.NOT_FND.value)
 
 if response.has_errors:
     print("Errors:")
-    for code, message in zip(response.error_codes, response.error_messages):
+    for code, message in zip(response.error_types, response.error_messages):
         print(f"Error {code}: {message}")
 ```
 
-### Handling Missing Success Field
+### Adding Custom Errors to the Configuration
 
-If the `success` field is not set, accessing `is_successful` raises a `ResponseError`:
+Add custom errors to the `ErrorResponseConfig`:
+
+```python
+ErrorResponseConfig.add_custom_error("CUS_ERR1", "Custom error message 1.")
+ErrorResponseConfig.add_custom_error("CUS_ERR2", "Custom error message 2.")
+```
+
+### Creating a Failed Response with Custom Errors
+
+Add custom errors to a response using the `add_error` method:
+
+```python
+response = Response()
+response.add_error("CUS_ERR1")
+response.add_error("CUS_ERR2")
+
+if response.has_errors:
+    print("Errors:")
+    for code, message in zip(response.error_types, response.error_messages):
+        print(f"Error {code}: {message}")
+```
+
+### Adding Multiple Custom Errors at Once
+
+Add multiple custom errors to the `ErrorResponseConfig`:
+
+```python
+custom_errors = {
+    "CUS_ERR3": "Custom error message 3.",
+    "CUS_ERR4": "Custom error message 4."
+}
+
+ErrorResponseConfig.add_custom_errors(custom_errors)
+```
+
+### Handling Undefined Errors
+
+Attempting to add an undefined error raises a `ValueError`:
 
 ```python
 response = Response()
 
 try:
-    print(response.is_successful)
-except ResponseError as e:
+    response.add_error("NOT_DEFINED")
+except ValueError as e:
     print("Caught an error:", str(e))
+```
+
+### Converting a Response to JSON
+
+Convert a `Response` object to JSON format using the `to_json` method:
+
+```python
+response = Response(data="Some data")
+response.add_error("VAL_ERR")
+print(response.to_json())
 ```
 
 ## API Reference
@@ -87,34 +126,39 @@ A generic class for handling responses.
 
 ##### Attributes:
 
-- `success` (`Optional[bool]`): Indicates whether the response is successful.
-- `errors` (`Optional[List[Error]]`): A list of errors in the response.
+- `errors` (`Optional[List[ErrorResponse]]`): A list of errors in the response.
 - `data` (`Optional[T]`): The data in the response.
 
 ##### Methods:
 
-- `is_successful` (`bool`): Checks if the response is successful. Raises `ResponseError` if `success` is not set.
-- `add_error(code: int, message: str)`: Adds an error to the response.
+- `add_error(error_code: str)`: Adds an error to the response.
 - `has_errors` (`bool`): Checks if the response has errors.
 - `error_messages` (`List[str]`): Retrieves a list of error messages.
-- `error_codes` (`List[int]`): Retrieves a list of error codes.
+- `error_types` (`List[str]`): Retrieves a list of error codes.
+- `to_json()`: Converts the response to JSON format.
 
-#### `Error`
+#### `ErrorResponse`
 
 A class for defining error codes and messages.
 
 ##### Attributes:
 
-- `code` (`int`): The error code.
+- `code` (`str`): The error code.
 - `message` (`str`): The error message.
 
-#### `ResponseError`
+#### `ErrorResponseConfig`
 
-A custom exception for response errors.
+A class for managing predefined and custom error configurations.
 
-##### Attributes:
+##### Methods:
 
-- `message` (`str`): The error message.
+- `add_custom_error(code: str, message: str)`: Adds a custom error to the configuration.
+- `add_custom_errors(errors: Dict[str, str])`: Adds multiple custom errors to the configuration.
+- `get_error(code: str)`: Retrieves an error by code.
+
+#### `PredefinedErrorCodes`
+
+An enum for predefined error codes.
 
 ## Contributing
 
