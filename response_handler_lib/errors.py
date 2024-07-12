@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, Optional
 
+from response_handler_lib.error_codes import ERROR_MESSAGES
+
 
 @dataclass
 class ErrorResponse:
@@ -21,15 +23,7 @@ class PredefinedErrorCodes(Enum):
 
 
 class ErrorResponseConfig:
-    _errors: Dict[str, str] = {
-        PredefinedErrorCodes.VAL_ERR.value: "Validation failed.",
-        PredefinedErrorCodes.NOT_FND.value: "Resource not found.",
-        PredefinedErrorCodes.INT_ERR.value: "Internal server error.",
-        PredefinedErrorCodes.PER_DEN.value: "Permission denied.",
-        PredefinedErrorCodes.AUTH_ERR.value: "Authentication error.",
-        PredefinedErrorCodes.TIMEOUT.value: "Request timed out.",
-        PredefinedErrorCodes.INV_REQ.value: "Invalid request."
-    }
+    _errors: Dict[str, str] = ERROR_MESSAGES
 
     @classmethod
     def add_custom_error(cls, code: str, message: str):
