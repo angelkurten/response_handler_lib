@@ -10,6 +10,7 @@ A package for handling responses with potential errors and generic data, includi
 - `ErrorResponseConfig` class for managing predefined and custom error configurations.
 - `PredefinedErrorCodes` enum for predefined error codes.
 - Utilities for adding errors, checking for errors, and retrieving error messages and codes.
+- HTTP Interceptor class for handling HTTP requests and responses with built-in error handling.
 - Convert `Response` to JSON format.
 
 ## Installation
@@ -125,6 +126,23 @@ response = Response(data="Some data")
 response.add_error("VAL_ERR")
 print(response.to_json(include_where=True))
 ```
+### Using the HTTPInterceptor
+
+The `HTTPInterceptor` class is designed to handle HTTP requests and responses with built-in error handling. Here is how to use it:
+
+```python
+interceptor = HTTPInterceptor()
+
+# Successful GET request
+response_json = interceptor.request('GET', 'https://jsonplaceholder.typicode.com/posts/1')
+print(response_json)
+
+# Handling a 404 Not Found error
+response_json = interceptor.request('GET', 'https://jsonplaceholder.typicode.com/invalid-endpoint')
+print(response_json)
+
+```
+
 
 ## API Reference
 
@@ -170,6 +188,16 @@ A class for managing predefined and custom error configurations.
 #### `PredefinedErrorCodes`
 
 An enum for predefined error codes.
+
+#### HTTPInterceptor
+
+A class for handling HTTP requests and responses with built-in error handling.
+
+##### Methods:
+
+- `request(method: str, url: str, **kwargs)`: Sends an HTTP request and returns the response JSON.
+- `handle_http_error(http_err: HTTPError, resp)`: Handles HTTP errors based on status code.
+- `handle_generic_error(err: Exception)`: Handles generic errors.
 
 ## Contributing
 
