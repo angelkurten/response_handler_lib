@@ -1,6 +1,8 @@
 # response_handler_lib
 
 [![Coverage Status](https://coveralls.io/repos/github/angelkurten/response_handler/badge.svg?branch=main)](https://coveralls.io/github/angelkurten/response_handler?branch=main)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/response_handler_lib)
+
 
 A package for handling responses with potential errors and generic data, including predefined and custom error handling. This package is used as a complement to exceptions to have more control over business logic errors.
 
