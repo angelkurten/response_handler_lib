@@ -1,6 +1,11 @@
 name: Coverage Report
 
-on: [push, pull_request]
+on:
+  push:
+    tags:
+      - '*'
+  release:
+    types: [published]
 
 jobs:
   test:
@@ -13,7 +18,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x'  # Reemplaza con la versión de Python que estás usando
+          python-version: '3.12'
 
       - name: Install dependencies
         run: |
