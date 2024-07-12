@@ -14,6 +14,8 @@ A package for handling responses with potential errors and generic data, includi
 - HTTP Interceptor class for handling HTTP requests and responses with built-in error handling.
 - Convert `Response` to JSON format.
 - Customizable logger for error reporting.
+- Add context information to responses.
+- Enable or disable context and error location (`where`) in JSON output.
 
 ## Installation
 
@@ -38,10 +40,6 @@ from response_handler_lib import Response, ErrorResponseConfig, PredefinedErrorC
 You can configure various aspects of the package, such as logger:
 
 ```python
-import logging
-from response_handler_lib import config
-
-# Configure a custom logger
 # Configure a custom logger
 custom_logger = logging.getLogger("custom_logger")
 custom_logger.setLevel(logging.DEBUG)
@@ -50,6 +48,14 @@ config.configure_logger(custom_logger)
 # Enable or disable logging
 config.enable_logs(True)  # Enable logging
 config.enable_logs(False)  # Disable logging
+
+# Enable or disable context in JSON output
+config.enable_context_in_json(True)  # Enable context
+config.enable_context_in_json(False)  # Disable context
+
+# Enable or disable error location (`where`) in JSON output
+config.enable_where_in_json(True)  # Enable where
+config.enable_where_in_json(False)  # Disable where
 ```
 
 ### Creating a Successful Response
@@ -61,6 +67,16 @@ response = Response(data="Some data")
 if not response.has_errors:
     print("Response is successful")
     print("Data:", response.data)
+```
+
+### Adding Context to a Response
+
+Add context information to a `Response` object:
+
+```python
+response = Response(data="Some data")
+response.add_context("user", {"id": 1, "name": "John Doe"})
+print(response.to_json())
 ```
 
 ### Creating a Failed Response with Predefined Errors
@@ -177,6 +193,7 @@ A generic class for handling responses.
 
 - `errors` (`Optional[List[ErrorResponse]]`): A list of errors in the response.
 - `data` (`Optional[T]`): The data in the response.
+- `context` (`Optional[Dict[str, Any]]`): Additional context information.
 
 ##### Methods:
 
@@ -185,6 +202,7 @@ A generic class for handling responses.
 - `error_messages` (`List[str]`): Retrieves a list of error messages.
 - `error_types` (`List[str]`): Retrieves a list of error codes.
 - `to_json(include_where: bool = False)`: Converts the response to JSON format, optionally including the `where` property.
+- `add_context(key: str, value: Any)`: Adds context information to the response.
 
 #### `ErrorResponse`
 

@@ -20,17 +20,17 @@ class Example:
     def generate_success_response(self):
         # Set data for a successful response
         self.response.data = "This is a successful response."
-        return self.response.to_json(include_where=True)
+        return self.response.to_json()
 
     def generate_error_response(self):
         # Add predefined error to the response
         self.response.add_error(PredefinedErrorCodes.VALIDATION_ERROR.value)
-
+        self.response.add_context("user", {"id": 1, "name": "John Doe"})
         # Add custom error to the response
         self.response.add_error("CUS_ERR1")
 
         # Return the response as JSON including the location where the errors were generated
-        return self.response.to_json(include_where=True)
+        return self.response.to_json()
 
     def generate_mixed_response(self):
         # Set data for a response with both data and errors

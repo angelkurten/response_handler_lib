@@ -3,6 +3,7 @@ import pytest
 from response_handler_lib.error_codes import PredefinedErrorCodes
 from response_handler_lib.errors import ErrorResponseConfig
 from response_handler_lib.response import Response
+from response_handler_lib.config import Config
 
 
 def test_predefined_error():
@@ -90,4 +91,47 @@ def test_to_json_include_where():
     json_output = response.to_json(include_where=True)
     assert '"code": "CUS_ERR6"' in json_output
     assert '"message": "Custom error message 6."' in json_output
+    assert '"where":' in json_output
+
+
+def test_to_json_with_context():
+    response = Response(data="Sample data")
+    response.add_context("user", "John Doe")
+    response.add_context("transaction_id", "12345")
+
+    Config.ENABLE_CONTEXT_IN_JSON = True
+    expected_json = '{"errors": [], "data": "Sample data", "context": {"user": "John Doe", "transaction_id": "12345"}}'
+    assert response.to_json() == expected_json
+
+    Config.ENABLE_CONTEXT_IN_JSON = False
+    expected_json = '{"errors": [], "data": "Sample data"}'
+    assert response.to_json() == expected_json
+
+
+def test_to_json_with_where_and_context_disabled():
+    ErrorResponseConfig.add_custom_error("CUS_ERR7", "Custom error message 7.")
+    response = Response(data="Sample data")
+    response.add_context("user", "John Doe")
+    response.add_error("CUS_ERR7")
+
+    Config.ENABLE_CONTEXT_IN_JSON = False
+    Config.ENABLE_WHERE_IN_JSON = False
+
+    json_output = response.to_json()
+    assert '"context":' not in json_output
+    assert '"where":' not in json_output
+
+    expected_json = '{"errors": [{"code": "CUS_ERR7", "message": "Custom error message 7."}], "data": "Sample data"}'
+    assert response.to_json() == expected_json
+
+
+def test_to_json_with_where_enabled():
+    ErrorResponseConfig.add_custom_error("CUS_ERR8", "Custom error message 8.")
+    response = Response(data="Sample data")
+    response.add_error("CUS_ERR8")
+
+    Config.ENABLE_WHERE_IN_JSON = True
+    json_output = response.to_json()
+    assert '"code": "CUS_ERR8"' in json_output
+    assert '"message": "Custom error message 8."' in json_output
     assert '"where":' in json_output
