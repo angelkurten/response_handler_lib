@@ -9,7 +9,9 @@ setup(
     license='MIT',
     author='Angel Kürten',
     author_email='angel@angelkurten.com',
-    description='A package for handling responses with potential errors and generic data.',
+    description='A package for handling responses with potential errors and generic data, including predefined and '
+                'custom error handling. This package is used as a complement to exceptions to have more control over '
+                'business logic errors.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
 )
