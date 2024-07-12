@@ -4,6 +4,7 @@ from typing import List, Optional, Generic, TypeVar
 import json
 import inspect
 
+from response_handler_lib.config import Config
 from response_handler_lib.errors import ErrorResponse, ErrorResponseConfig
 
 T = TypeVar('T')
@@ -36,6 +37,9 @@ class Response(Generic[T]):
         if self.errors is None:
             self.errors = []
         self.errors.append(error_instance)
+
+        if Config.ENABLE_LOGS:
+            Config.LOGGER.error(f"Error added: {error.code} - {error.message} at {error.where}")
 
     @property
     def has_errors(self) -> bool:

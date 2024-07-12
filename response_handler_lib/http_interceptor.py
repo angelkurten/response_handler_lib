@@ -3,6 +3,7 @@ import logging
 import requests
 from requests.exceptions import HTTPError
 
+from response_handler_lib.config import Config
 from response_handler_lib.error_codes import PredefinedErrorCodes
 from response_handler_lib.response import Response
 
@@ -34,8 +35,10 @@ class HTTPInterceptor:
             self.response.add_error(PredefinedErrorCodes.INTERNAL_ERROR.value)
         else:
             self.response.add_error(PredefinedErrorCodes.INTERNAL_ERROR.value)
-        logging.error(f"HTTP error occurred: {http_err}")
+        if Config.ENABLE_LOGS:
+            Config.LOGGER.error(f"HTTP error occurred: {http_err}")
 
     def handle_generic_error(self, err):
         self.response.add_error(PredefinedErrorCodes.INTERNAL_ERROR.value)
-        logging.error(f"HTTP error occurred: {err}")
+        if Config.ENABLE_LOGS:
+            Config.LOGGER.error(f"HTTP error occurred: {err}")

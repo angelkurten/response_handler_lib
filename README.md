@@ -12,6 +12,7 @@ A package for handling responses with potential errors and generic data, includi
 - Utilities for adding errors, checking for errors, and retrieving error messages and codes.
 - HTTP Interceptor class for handling HTTP requests and responses with built-in error handling.
 - Convert `Response` to JSON format.
+- Customizable logger for error reporting.
 
 ## Installation
 
@@ -29,6 +30,25 @@ To use the `Response` class and related utilities, import them from the `respons
 
 ```python
 from response_handler_lib import Response, ErrorResponseConfig, PredefinedErrorCodes
+```
+
+### Configuring the Package
+
+You can configure various aspects of the package, such as logger:
+
+```python
+import logging
+from response_handler_lib import config
+
+# Configure a custom logger
+# Configure a custom logger
+custom_logger = logging.getLogger("custom_logger")
+custom_logger.setLevel(logging.DEBUG)
+config.configure_logger(custom_logger)
+
+# Enable or disable logging
+config.enable_logs(True)  # Enable logging
+config.enable_logs(False)  # Disable logging
 ```
 
 ### Creating a Successful Response
