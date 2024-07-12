@@ -1,6 +1,8 @@
-import json
+import os
 from dataclasses import dataclass, asdict
 from typing import List, Optional, Generic, TypeVar
+import json
+import inspect
 
 from response_handler_lib.errors import ErrorResponse, ErrorResponseConfig
 
@@ -17,9 +19,23 @@ class Response(Generic[T]):
         error = ErrorResponseConfig.get_error(error_code)
         if not error:
             raise ValueError(f"Error code '{error_code}' not defined.")
+
+        frame = inspect.currentframe().f_back
+        filename = os.path.basename(frame.f_globals["__file__"])
+        line_number = frame.f_lineno
+        class_name = frame.f_locals.get("self", None).__class__.__name__ if "self" in frame.f_locals else None
+        method_name = frame.f_code.co_name
+
+        location = f"{filename}, {class_name}.{method_name}, line {line_number}" \
+            if class_name \
+            else \
+            f"{filename}, {method_name}, line {line_number}"
+
+        error_instance = ErrorResponse(code=error.code, message=error.message, where=location)
+
         if self.errors is None:
             self.errors = []
-        self.errors.append(error)
+        self.errors.append(error_instance)
 
     @property
     def has_errors(self) -> bool:
@@ -36,6 +52,10 @@ class Response(Generic[T]):
         """Get a list of error types."""
         return [err.code for err in self.errors] if self.has_errors else []
 
-    def to_json(self) -> str:
+    def to_json(self, include_where: bool = False) -> str:
         """Convert the response to JSON format."""
-        return json.dumps(asdict(self), default=str)
+        response_dict = asdict(self)
+        if not include_where:
+            for error in response_dict['errors']:
+                error.pop('where', None)
+        return json.dumps(response_dict, default=str)

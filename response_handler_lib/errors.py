@@ -7,6 +7,7 @@ from typing import Dict, Optional
 class ErrorResponse:
     code: str
     message: str
+    where: Optional[str] = None
 
 
 class PredefinedErrorCodes(Enum):

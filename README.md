@@ -116,6 +116,16 @@ response.add_error("VAL_ERR")
 print(response.to_json())
 ```
 
+### Including `where` in the JSON Output
+
+Convert a `Response` object to JSON format, optionally including the `where` property:
+
+```python
+response = Response(data="Some data")
+response.add_error("VAL_ERR")
+print(response.to_json(include_where=True))
+```
+
 ## API Reference
 
 ### Classes
@@ -135,7 +145,7 @@ A generic class for handling responses.
 - `has_errors` (`bool`): Checks if the response has errors.
 - `error_messages` (`List[str]`): Retrieves a list of error messages.
 - `error_types` (`List[str]`): Retrieves a list of error codes.
-- `to_json()`: Converts the response to JSON format.
+- `to_json(include_where: bool = False)`: Converts the response to JSON format, optionally including the `where` property.
 
 #### `ErrorResponse`
 
@@ -145,6 +155,7 @@ A class for defining error codes and messages.
 
 - `code` (`str`): The error code.
 - `message` (`str`): The error message.
+- `where` (`Optional[str]`): The location where the error was generated.
 
 #### `ErrorResponseConfig`
 
