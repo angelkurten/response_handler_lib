@@ -2,8 +2,8 @@ name: Coverage Report
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - main
   release:
     types: [published]
 

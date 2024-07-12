@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass, asdict
-from typing import List, Optional, Generic, TypeVar
+from typing import List, Optional, Generic, TypeVar, Dict, Any
 import json
 import inspect
 
@@ -14,6 +14,7 @@ T = TypeVar('T')
 class Response(Generic[T]):
     errors: Optional[List[ErrorResponse]] = None
     data: Optional[T] = None
+    context: Optional[Dict[str, Any]] = None
 
     def add_error(self, error_code: str):
         """Add an error to the response."""
@@ -39,7 +40,13 @@ class Response(Generic[T]):
         self.errors.append(error_instance)
 
         if Config.ENABLE_LOGS:
-            Config.LOGGER.error(f"Error added: {error_instance.code} - {error_instance.message} at {error_instance.where}")
+            Config.LOGGER.error(
+                f"Error added:\n"
+                f"  Code: {error_instance.code}\n"
+                f"  Message: {error_instance.message}\n"
+                f"  Location: {error_instance.where}\n"
+                f"  Context: {self.context if self.context else 'None'}"
+            )
 
     @property
     def has_errors(self) -> bool:
@@ -56,11 +63,21 @@ class Response(Generic[T]):
         """Get a list of error types."""
         return [err.code for err in self.errors] if self.has_errors else []
 
+    def add_context(self, key: str, value: Any):
+        """Add context information to the response."""
+        if self.context is None:
+            self.context = {}
+        self.context[key] = value
+
     def to_json(self, include_where: bool = False) -> str:
         """Convert the response to JSON format."""
         response_dict = asdict(self)
         response_dict['errors'] = response_dict['errors'] if self.errors is not None else []
-        if not include_where:
+        if not Config.ENABLE_CONTEXT_IN_JSON:
+            response_dict.pop('context', None)
+
+        if not include_where and not Config.ENABLE_WHERE_IN_JSON:
             for error in response_dict['errors']:
                 error.pop('where', None)
+
         return json.dumps(response_dict, default=str)
