@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='response_handler_lib',
-    version='0.1.2',
+    version='0.1.3',
     packages=find_packages(),
     install_requires=[],
     url='https://github.com/angerlkurten/response_handler',
