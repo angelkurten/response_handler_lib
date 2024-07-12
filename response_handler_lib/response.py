@@ -39,7 +39,7 @@ class Response(Generic[T]):
         self.errors.append(error_instance)
 
         if Config.ENABLE_LOGS:
-            Config.LOGGER.error(f"Error added: {error.code} - {error.message} at {error.where}")
+            Config.LOGGER.error(f"Error added: {error_instance.code} - {error_instance.message} at {error_instance.where}")
 
     @property
     def has_errors(self) -> bool:
