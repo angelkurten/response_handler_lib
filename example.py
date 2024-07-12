@@ -1,5 +1,6 @@
 from response_handler_lib.error_codes import PredefinedErrorCodes
 from response_handler_lib.errors import ErrorResponseConfig
+from response_handler_lib.http_interceptor import HTTPInterceptor
 from response_handler_lib.response import Response
 import json
 
@@ -67,3 +68,15 @@ class Example:
 # Run the example
 example = Example()
 example.print_responses()
+
+interceptor = HTTPInterceptor()
+response_json = interceptor.request('GET', 'https://jsonplaceholder.typicode.com/posts/1')
+print("---- Error HTTP Interceptor Response ----")
+print(json.dumps(json.loads(response_json), indent=4))
+print("\n")
+
+interceptor2 = HTTPInterceptor()
+response_json = interceptor2.request('GET', 'https://example.com/404')
+print("---- Error HTTP Interceptor Response ----")
+print(json.dumps(json.loads(response_json), indent=4))
+print("\n")

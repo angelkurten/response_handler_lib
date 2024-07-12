@@ -4,6 +4,7 @@ from typing import List, Optional, Generic, TypeVar
 import json
 import inspect
 
+from response_handler_lib.config import Config
 from response_handler_lib.errors import ErrorResponse, ErrorResponseConfig
 
 T = TypeVar('T')
@@ -37,6 +38,9 @@ class Response(Generic[T]):
             self.errors = []
         self.errors.append(error_instance)
 
+        if Config.ENABLE_LOGS:
+            Config.LOGGER.error(f"Error added: {error_instance.code} - {error_instance.message} at {error_instance.where}")
+
     @property
     def has_errors(self) -> bool:
         """Check if the response has errors."""
@@ -55,6 +59,7 @@ class Response(Generic[T]):
     def to_json(self, include_where: bool = False) -> str:
         """Convert the response to JSON format."""
         response_dict = asdict(self)
+        response_dict['errors'] = response_dict['errors'] if self.errors is not None else []
         if not include_where:
             for error in response_dict['errors']:
                 error.pop('where', None)

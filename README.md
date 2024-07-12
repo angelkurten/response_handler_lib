@@ -1,5 +1,6 @@
-
 # response_handler_lib
+
+[![Coverage Status](https://coveralls.io/repos/github/angelkurten/response_handler/badge.svg?branch=main)](https://coveralls.io/github/angelkurten/response_handler?branch=main)
 
 A package for handling responses with potential errors and generic data, including predefined and custom error handling. This package is used as a complement to exceptions to have more control over business logic errors.
 
@@ -10,7 +11,9 @@ A package for handling responses with potential errors and generic data, includi
 - `ErrorResponseConfig` class for managing predefined and custom error configurations.
 - `PredefinedErrorCodes` enum for predefined error codes.
 - Utilities for adding errors, checking for errors, and retrieving error messages and codes.
+- HTTP Interceptor class for handling HTTP requests and responses with built-in error handling.
 - Convert `Response` to JSON format.
+- Customizable logger for error reporting.
 
 ## Installation
 
@@ -28,6 +31,25 @@ To use the `Response` class and related utilities, import them from the `respons
 
 ```python
 from response_handler_lib import Response, ErrorResponseConfig, PredefinedErrorCodes
+```
+
+### Configuring the Package
+
+You can configure various aspects of the package, such as logger:
+
+```python
+import logging
+from response_handler_lib import config
+
+# Configure a custom logger
+# Configure a custom logger
+custom_logger = logging.getLogger("custom_logger")
+custom_logger.setLevel(logging.DEBUG)
+config.configure_logger(custom_logger)
+
+# Enable or disable logging
+config.enable_logs(True)  # Enable logging
+config.enable_logs(False)  # Disable logging
 ```
 
 ### Creating a Successful Response
@@ -125,6 +147,23 @@ response = Response(data="Some data")
 response.add_error("VAL_ERR")
 print(response.to_json(include_where=True))
 ```
+### Using the HTTPInterceptor
+
+The `HTTPInterceptor` class is designed to handle HTTP requests and responses with built-in error handling. Here is how to use it:
+
+```python
+interceptor = HTTPInterceptor()
+
+# Successful GET request
+response_json = interceptor.request('GET', 'https://jsonplaceholder.typicode.com/posts/1')
+print(response_json)
+
+# Handling a 404 Not Found error
+response_json = interceptor.request('GET', 'https://jsonplaceholder.typicode.com/invalid-endpoint')
+print(response_json)
+
+```
+
 
 ## API Reference
 
@@ -170,6 +209,16 @@ A class for managing predefined and custom error configurations.
 #### `PredefinedErrorCodes`
 
 An enum for predefined error codes.
+
+#### HTTPInterceptor
+
+A class for handling HTTP requests and responses with built-in error handling.
+
+##### Methods:
+
+- `request(method: str, url: str, **kwargs)`: Sends an HTTP request and returns the response JSON.
+- `handle_http_error(http_err: HTTPError, resp)`: Handles HTTP errors based on status code.
+- `handle_generic_error(err: Exception)`: Handles generic errors.
 
 ## Contributing
 
