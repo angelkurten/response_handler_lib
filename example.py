@@ -1,4 +1,5 @@
-from response_handler_lib.errors import ErrorResponseConfig, PredefinedErrorCodes
+from response_handler_lib.error_codes import PredefinedErrorCodes
+from response_handler_lib.errors import ErrorResponseConfig
 from response_handler_lib.response import Response
 import json
 
@@ -22,7 +23,7 @@ class Example:
 
     def generate_error_response(self):
         # Add predefined error to the response
-        self.response.add_error(PredefinedErrorCodes.VAL_ERR.value)
+        self.response.add_error(PredefinedErrorCodes.VALIDATION_ERROR.value)
 
         # Add custom error to the response
         self.response.add_error("CUS_ERR1")
@@ -35,7 +36,7 @@ class Example:
         self.response.data = "This response has both data and errors."
 
         # Add predefined error to the response
-        self.response.add_error(PredefinedErrorCodes.AUTH_ERR.value)
+        self.response.add_error(PredefinedErrorCodes.AUTHENTICATION_ERROR.value)
 
         # Add custom error to the response
         self.response.add_error("CUS_ERR2")

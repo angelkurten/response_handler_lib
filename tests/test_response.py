@@ -1,15 +1,17 @@
 import pytest
-from response_handler_lib.errors import PredefinedErrorCodes, ErrorResponseConfig
+
+from response_handler_lib.error_codes import PredefinedErrorCodes
+from response_handler_lib.errors import ErrorResponseConfig
 from response_handler_lib.response import Response
 
 
 def test_predefined_error():
     response = Response()
-    response.add_error(PredefinedErrorCodes.VAL_ERR.value)
+    response.add_error(PredefinedErrorCodes.VALIDATION_ERROR.value)
 
     assert response.has_errors is True
     assert response.error_messages == ["Validation failed."]
-    assert response.error_types == ["VAL_ERR"]
+    assert response.error_types == ["VAL_001"]
 
 
 def test_add_custom_error():
@@ -63,12 +65,12 @@ def test_response_with_mixed_errors_and_data():
     ErrorResponseConfig.add_custom_error("CUS_ERR4", "Custom error message 4.")
     response = Response(data="Sample data")
     response.add_error("CUS_ERR4")
-    response.add_error(PredefinedErrorCodes.TIMEOUT.value)
+    response.add_error(PredefinedErrorCodes.REQUEST_TIMEOUT.value)
 
     assert response.data == "Sample data"
     assert response.has_errors is True
     assert response.error_messages == ["Custom error message 4.", "Request timed out."]
-    assert response.error_types == ["CUS_ERR4", "TIMEOUT"]
+    assert response.error_types == ["CUS_ERR4", "TIM_006"]
 
 
 def test_to_json():

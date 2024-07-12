@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from enum import Enum
 from typing import Dict, Optional
 
 from response_handler_lib.error_codes import ERROR_MESSAGES
@@ -10,16 +9,6 @@ class ErrorResponse:
     code: str
     message: str
     where: Optional[str] = None
-
-
-class PredefinedErrorCodes(Enum):
-    VAL_ERR = "VAL_ERR"
-    NOT_FND = "NOT_FND"
-    INT_ERR = "INT_ERR"
-    PER_DEN = "PER_DEN"
-    AUTH_ERR = "AUTH_ERR"
-    TIMEOUT = "TIMEOUT"
-    INV_REQ = "INV_REQ"
 
 
 class ErrorResponseConfig:
