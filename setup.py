@@ -5,7 +5,7 @@ setup(
     version='0.1.5',
     packages=find_packages(),
     install_requires=[],
-    url='https://github.com/angerlkurten/response_handler',
+    url='https://github.com/angerlkurten/response_handler_lib',
     license='MIT',
     author='Angel Kürten',
     author_email='angel@angelkurten.com',
