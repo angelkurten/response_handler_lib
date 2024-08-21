@@ -34,7 +34,8 @@ pip install response_handler_lib
 To use the `Response` class and related utilities, import them from the `response_handler_lib` package:
 
 ```python
-from response_handler_lib import Response, ErrorResponseConfig, PredefinedErrorCodes
+from response_handler_lib.error_codes import PredefinedErrorCodes
+from response_handler_lib.response import Response
 ```
 
 ### Configuring the Package
