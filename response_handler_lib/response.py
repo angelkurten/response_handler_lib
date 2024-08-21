@@ -81,3 +81,17 @@ class Response(Generic[T]):
                 error.pop('where', None)
 
         return json.dumps(response_dict, default=str)
+
+    def to_dict(self, include_where: bool = False) -> dict:
+        """Convert the response to a dictionary format."""
+        response_dict = asdict(self)
+        response_dict['errors'] = response_dict['errors'] if self.errors is not None else []
+
+        if not Config.ENABLE_CONTEXT_IN_JSON:
+            response_dict.pop('context', None)
+
+        if not include_where and not Config.ENABLE_WHERE_IN_JSON:
+            for error in response_dict['errors']:
+                error.pop('where', None)
+
+        return response_dict
