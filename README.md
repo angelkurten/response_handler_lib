@@ -91,10 +91,10 @@ json_response = response.to_json()
 
 ## License
 
-MIT
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Contact
 
-Your Name - your.email@example.com
-
-Project Link: [https://github.com/yourusername/response-handler](https://github.com/yourusername/response-handler)
+Author: Angel Kürten  
+Email: angel@angelkurten.com  
+GitHub: [angelkurten](https://github.com/angelkurten)
