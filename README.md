@@ -1,5 +1,8 @@
 # Response Handler Library
 
+[![Coverage Status](https://coveralls.io/repos/github/angelkurten/response_handler/badge.svg?branch=main)](https://coveralls.io/github/angelkurten/response_handler?branch=main)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/response_handler_lib)
+
 A Python library for handling responses and errors in a consistent way.
 
 ## Overview
