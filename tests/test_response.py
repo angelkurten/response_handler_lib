@@ -374,3 +374,181 @@ def test_response_model_dump_json():
     json_str = response.model_dump_json()
     assert isinstance(json_str, str)
     assert json_str == '{"data":{"key":"value"},"errors":[],"context":{},"status_code":200}'
+
+
+def test_response_to_json_with_context_disabled():
+    Config.ENABLE_CONTEXT_IN_JSON = False
+    response = Response(
+        data={"key": "value"},
+        context={"context_key": "context_value"}
+    )
+    json_str = response.to_json()
+    assert "context" not in json_str
+    assert "data" in json_str
+    assert "errors" in json_str
+    assert "status_code" in json_str
+
+
+def test_response_to_json_with_where_disabled():
+    Config.ENABLE_WHERE_IN_JSON = False
+    error = ErrorItem.create("TEST_ERROR", "Test error message")
+    response = Response(errors=[error])
+    json_str = response.to_json()
+    assert "where" not in json_str
+    assert "errors" in json_str
+    assert "code" in json_str
+    assert "message" in json_str
+
+
+def test_response_to_json_with_both_disabled():
+    Config.ENABLE_CONTEXT_IN_JSON = False
+    Config.ENABLE_WHERE_IN_JSON = False
+    error = ErrorItem.create(
+        "TEST_ERROR",
+        "Test error message",
+        context={"error_context": "value"}
+    )
+    response = Response(
+        errors=[error],
+        context={"response_context": "value"}
+    )
+    json_str = response.to_json()
+    assert "context" not in json_str
+    assert "where" not in json_str
+    assert "errors" in json_str
+    assert "code" in json_str
+    assert "message" in json_str
+
+
+def test_response_to_dict_with_context_disabled():
+    Config.ENABLE_CONTEXT_IN_JSON = False
+    response = Response(
+        data={"key": "value"},
+        context={"context_key": "context_value"}
+    )
+    result = response.to_dict()
+    assert "context" not in result
+    assert result["data"] == {"key": "value"}
+    assert result["errors"] == []
+    assert result["status_code"] == 200
+
+
+def test_response_to_dict_with_where_disabled():
+    Config.ENABLE_WHERE_IN_JSON = False
+    error = ErrorItem.create("TEST_ERROR", "Test error message")
+    response = Response(errors=[error])
+    result = response.to_dict()
+    assert "where" not in result["errors"][0]
+    assert result["errors"][0]["code"] == "TEST_ERROR"
+    assert result["errors"][0]["message"] == "Test error message"
+
+
+def test_response_to_dict_with_both_disabled():
+    Config.ENABLE_CONTEXT_IN_JSON = False
+    Config.ENABLE_WHERE_IN_JSON = False
+    error = ErrorItem.create(
+        "TEST_ERROR",
+        "Test error message",
+        context={"error_context": "value"}
+    )
+    response = Response(
+        errors=[error],
+        context={"response_context": "value"}
+    )
+    result = response.to_dict()
+    assert "context" not in result
+    assert "where" not in result["errors"][0]
+    assert result["errors"][0]["code"] == "TEST_ERROR"
+    assert result["errors"][0]["message"] == "Test error message"
+
+
+def test_response_from_either_invalid_type():
+    with pytest.raises(ValueError, match="Invalid Either type"):
+        Response.from_either("invalid_either")
+
+
+def test_response_status_code_validation():
+    with pytest.raises(ValidationError):
+        Response(status_code=99)  # Too low
+
+    with pytest.raises(ValidationError):
+        Response(status_code=600)  # Too high
+
+    # Valid status codes should work
+    response = Response(status_code=200)
+    assert response.status_code == 200
+
+    response = Response(status_code=404)
+    assert response.status_code == 404
+
+    response = Response(status_code=500)
+    assert response.status_code == 500
+
+
+def test_response_with_complex_data():
+    complex_data = {
+        "nested": {
+            "array": [1, 2, 3],
+            "object": {
+                "key": "value",
+                "number": 42
+            }
+        },
+        "boolean": True,
+        "null": None
+    }
+    response = Response(data=complex_data)
+    result = response.to_dict()
+    assert result["data"] == complex_data
+    assert result["status_code"] == 200
+    assert result["errors"] == []
+
+
+def test_response_with_multiple_errors_and_context():
+    Config.ENABLE_CONTEXT_IN_JSON = True
+    errors = [
+        ErrorItem.create("TEST_ERROR", "First error", context={"error1": "context1"}),
+        ErrorItem.create("TEST_ERROR", "Second error", context={"error2": "context2"})
+    ]
+    response = Response(
+        errors=errors,
+        context={"response_context": "value"}
+    )
+    result = response.to_dict()
+    assert len(result["errors"]) == 2
+    assert result["errors"][0]["code"] == "TEST_ERROR"
+    assert result["errors"][1]["code"] == "TEST_ERROR"
+    assert result["context"] == {"response_context": "value"}
+    Config.ENABLE_CONTEXT_IN_JSON = False
+
+
+def test_response_to_json_with_where_disabled_only():
+    # Test to_json with only where disabled (context enabled)
+    Config.ENABLE_CONTEXT_IN_JSON = True
+    Config.ENABLE_WHERE_IN_JSON = False
+    
+    error = ErrorItem.create(
+        "TEST_ERROR",
+        "Test error message",
+        context={"error_context": "value"}
+    )
+    response = Response(
+        errors=[error],
+        context={"response_context": "value"}
+    )
+    
+    json_str = response.to_json()
+    data = json.loads(json_str)
+    
+    # Context should be present (enabled)
+    assert "context" in data
+    assert data["context"] == {"response_context": "value"}
+    assert "context" in data["errors"][0]
+    assert data["errors"][0]["context"] == {"error_context": "value"}
+    
+    # Where should not be present (disabled)
+    assert "where" not in data["errors"][0]
+    
+    # Reset config
+    Config.ENABLE_CONTEXT_IN_JSON = False
+    Config.ENABLE_WHERE_IN_JSON = True

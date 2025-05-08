@@ -504,4 +504,151 @@ def test_error_item_to_dict_with_empty_context():
     assert "context" not in result
     
     # Reset config
-    Config.ENABLE_CONTEXT_IN_JSON = False 
+    Config.ENABLE_CONTEXT_IN_JSON = False
+
+
+def test_success_of_factory_method():
+    # Test the Success.of() factory method
+    success = Success.of("test")
+    assert isinstance(success, Success)
+    assert success.get_right() == "test"
+    assert success.get_left() is None
+    assert success.is_right is True
+    assert success.is_left is False
+
+    # Test with different type
+    success = Success.of(42)
+    assert isinstance(success, Success)
+    assert success.get_right() == 42
+    assert success.get_left() is None
+
+
+def test_success_to_json_with_success_data():
+    from response_handler_lib.types import SuccessData
+    from pydantic import BaseModel
+
+    class TestModel(BaseModel):
+        name: str
+        value: int
+
+    class TestSuccessData(SuccessData):
+        data: TestModel
+
+    test_data = TestModel(name="test", value=42)
+    success_data = TestSuccessData(data=test_data)
+    success = Success(success_data)
+    
+    json_str = success.to_json()
+    assert json_str == '{"data": {"name": "test", "value": 42}, "metadata": null}'
+
+
+def test_success_to_dict_with_success_data():
+    from response_handler_lib.types import SuccessData
+    from pydantic import BaseModel
+
+    class TestModel(BaseModel):
+        name: str
+        value: int
+
+    class TestSuccessData(SuccessData):
+        data: TestModel
+
+    test_data = TestModel(name="test", value=42)
+    success_data = TestSuccessData(data=test_data)
+    success = Success(success_data)
+    
+    dict_data = success.to_dict()
+    assert dict_data == {"data": {"name": "test", "value": 42}, "metadata": None}
+
+
+def test_error_item_create_with_logging(caplog):
+    # Test error creation with logging enabled
+    Config.ENABLE_LOGS = True
+    error = ErrorItem.create(PredefinedErrorCodes.VALIDATION_ERROR, "Test error")
+    
+    assert error.code == PredefinedErrorCodes.VALIDATION_ERROR.value
+    assert error.message == "Test error"
+    assert "Error created:" in caplog.text
+    assert "Code: VAL_001" in caplog.text
+    assert "Message: Test error" in caplog.text
+    assert "Location:" in caplog.text
+
+
+def test_error_item_create_with_logging_disabled(caplog):
+    # Test error creation with logging disabled
+    Config.ENABLE_LOGS = False
+    error = ErrorItem.create(PredefinedErrorCodes.VALIDATION_ERROR, "Test error")
+    
+    assert error.code == PredefinedErrorCodes.VALIDATION_ERROR.value
+    assert error.message == "Test error"
+    assert "Error created:" not in caplog.text
+
+
+def test_error_item_to_dict_with_context_disabled():
+    # Test to_dict with context when context is disabled in config
+    Config.ENABLE_CONTEXT_IN_JSON = False
+    error = ErrorItem.create(
+        PredefinedErrorCodes.VALIDATION_ERROR,
+        "Test error",
+        context={"key": "value"}
+    )
+    
+    result = error.to_dict()
+    assert "code" in result
+    assert "message" in result
+    assert "context" not in result
+
+
+def test_error_item_to_dict_with_context_enabled():
+    # Test to_dict with context when context is enabled in config
+    Config.ENABLE_CONTEXT_IN_JSON = True
+    error = ErrorItem.create(
+        PredefinedErrorCodes.VALIDATION_ERROR,
+        "Test error",
+        context={"key": "value"}
+    )
+    
+    result = error.to_dict()
+    assert "code" in result
+    assert "message" in result
+    assert "context" in result
+    assert result["context"] == {"key": "value"}
+
+
+def test_error_item_to_dict_with_where_and_context():
+    # Test to_dict with both where and context
+    Config.ENABLE_CONTEXT_IN_JSON = True
+    error = ErrorItem.create(
+        PredefinedErrorCodes.VALIDATION_ERROR,
+        "Test error",
+        context={"key": "value"}
+    )
+    
+    result = error.to_dict(include_where=True)
+    assert "code" in result
+    assert "message" in result
+    assert "where" in result
+    assert "context" in result
+    assert result["context"] == {"key": "value"}
+
+
+def test_error_item_create_in_standalone_function():
+    # Test error creation in a standalone function (no class)
+    def standalone_function():
+        return ErrorItem.create("TEST_ERROR", "Test error")
+    
+    error = standalone_function()
+    assert error.code == "TEST_ERROR"
+    assert error.message == "Test error"
+    assert "standalone_function" in error.where
+    assert ", line" in error.where
+
+
+def test_error_item_create_in_lambda():
+    # Test error creation in a lambda function (no class, no name)
+    error_creator = lambda: ErrorItem.create("TEST_ERROR", "Test error")
+    error = error_creator()
+    assert error.code == "TEST_ERROR"
+    assert error.message == "Test error"
+    assert "<lambda>" in error.where
+    assert ", line" in error.where 
