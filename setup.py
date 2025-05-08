@@ -2,9 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name='response_handler_lib',
-    version='0.1.6',
+    version='0.2.0',
     packages=find_packages(),
-    install_requires=[],
+    install_requires=[
+        "requests>=2.31.0",
+        "pydantic>=2.0.0"
+    ],
     url='https://github.com/angerlkurten/response_handler_lib',
     license='MIT',
     author='Angel Kürten',
@@ -14,4 +17,10 @@ setup(
                 'business logic errors.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
+    python_requires=">=3.8",
 )
