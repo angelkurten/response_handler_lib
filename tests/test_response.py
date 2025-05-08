@@ -520,3 +520,35 @@ def test_response_with_multiple_errors_and_context():
     assert result["errors"][1]["code"] == "TEST_ERROR"
     assert result["context"] == {"response_context": "value"}
     Config.ENABLE_CONTEXT_IN_JSON = False
+
+
+def test_response_to_json_with_where_disabled_only():
+    # Test to_json with only where disabled (context enabled)
+    Config.ENABLE_CONTEXT_IN_JSON = True
+    Config.ENABLE_WHERE_IN_JSON = False
+    
+    error = ErrorItem.create(
+        "TEST_ERROR",
+        "Test error message",
+        context={"error_context": "value"}
+    )
+    response = Response(
+        errors=[error],
+        context={"response_context": "value"}
+    )
+    
+    json_str = response.to_json()
+    data = json.loads(json_str)
+    
+    # Context should be present (enabled)
+    assert "context" in data
+    assert data["context"] == {"response_context": "value"}
+    assert "context" in data["errors"][0]
+    assert data["errors"][0]["context"] == {"error_context": "value"}
+    
+    # Where should not be present (disabled)
+    assert "where" not in data["errors"][0]
+    
+    # Reset config
+    Config.ENABLE_CONTEXT_IN_JSON = False
+    Config.ENABLE_WHERE_IN_JSON = True

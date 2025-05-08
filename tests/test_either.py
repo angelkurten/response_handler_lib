@@ -629,4 +629,26 @@ def test_error_item_to_dict_with_where_and_context():
     assert "message" in result
     assert "where" in result
     assert "context" in result
-    assert result["context"] == {"key": "value"} 
+    assert result["context"] == {"key": "value"}
+
+
+def test_error_item_create_in_standalone_function():
+    # Test error creation in a standalone function (no class)
+    def standalone_function():
+        return ErrorItem.create("TEST_ERROR", "Test error")
+    
+    error = standalone_function()
+    assert error.code == "TEST_ERROR"
+    assert error.message == "Test error"
+    assert "standalone_function" in error.where
+    assert ", line" in error.where
+
+
+def test_error_item_create_in_lambda():
+    # Test error creation in a lambda function (no class, no name)
+    error_creator = lambda: ErrorItem.create("TEST_ERROR", "Test error")
+    error = error_creator()
+    assert error.code == "TEST_ERROR"
+    assert error.message == "Test error"
+    assert "<lambda>" in error.where
+    assert ", line" in error.where 
