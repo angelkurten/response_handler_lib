@@ -1,6 +1,7 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Set
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from .either import Either, ErrorItem, Success, Failure
+from .config import Config
 
 class Response(BaseModel):
     """
@@ -52,10 +53,29 @@ class Response(BaseModel):
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert the response to a dictionary format."""
-        return self.model_dump()
+        data = self.model_dump()
+        if not Config.ENABLE_CONTEXT_IN_JSON:
+            data.pop('context', None)
+        if data.get('errors'):
+            for error in data['errors']:
+                if not Config.ENABLE_WHERE_IN_JSON:
+                    error.pop('where', None)
+                if not Config.ENABLE_CONTEXT_IN_JSON:
+                    error.pop('context', None)
+        return data
 
     def to_json(self) -> str:
         """Convert the response to JSON format."""
+        if not Config.ENABLE_CONTEXT_IN_JSON or not Config.ENABLE_WHERE_IN_JSON:
+            exclude: Dict[str, Any] = {}
+            if not Config.ENABLE_CONTEXT_IN_JSON:
+                exclude['context'] = True
+                exclude['errors'] = {'__all__': {'context'}}
+            if not Config.ENABLE_WHERE_IN_JSON:
+                if 'errors' not in exclude:
+                    exclude['errors'] = {'__all__': set()}
+                exclude['errors']['__all__'].add('where')
+            return self.model_dump_json(exclude=exclude)
         return self.model_dump_json()
 
     @classmethod

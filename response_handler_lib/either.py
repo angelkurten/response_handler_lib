@@ -1,14 +1,16 @@
 from dataclasses import dataclass, asdict
-from typing import TypeVar, Generic, Optional, List, Dict, Any, Union
+from typing import TypeVar, Generic, Optional, List, Dict, Any, Union, Type, cast
 import json
 import os
 import inspect
 
 from response_handler_lib.error_codes import PredefinedErrorCodes
 from response_handler_lib.config import Config
+from response_handler_lib.types import SuccessData
 
 L = TypeVar('L')  # Tipo para el error
 R = TypeVar('R')  # Tipo para el éxito
+T = TypeVar('T')  # Tipo para el valor de éxito en el método of
 
 
 @dataclass
@@ -77,6 +79,14 @@ class Success(Either[L, R]):
     def __init__(self, value: R):
         self._value = value
 
+    @classmethod
+    def of(cls, value: T) -> 'Success[L, T]':
+        """
+        Método de fábrica que permite crear un Success con un tipo específico.
+        Útil cuando se quiere especificar explícitamente el tipo genérico.
+        """
+        return cast(Success[L, T], cls(value))
+
     @property
     def is_right(self) -> bool:
         return True
@@ -97,10 +107,14 @@ class Success(Either[L, R]):
     def flat_map(self, f) -> Either[L, R]:
         return f(self._value)
 
-    def to_json(self, include_where: bool = False) -> str:
+    def to_json(self) -> str:
+        if isinstance(self._value, SuccessData):
+            return json.dumps(self._value.model_dump())
         return json.dumps({"data": self._value})
 
-    def to_dict(self, include_where: bool = False) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
+        if isinstance(self._value, SuccessData):
+            return self._value.model_dump()
         return {"data": self._value}
 
 
