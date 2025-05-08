@@ -1,100 +1,111 @@
-# Response Handler Library
+# Response Handler
 
-[![Coverage Status](https://coveralls.io/repos/github/angelkurten/response_handler/badge.svg?branch=main)](https://coveralls.io/github/angelkurten/response_handler?branch=main)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/response_handler_lib)
+A Python library for handling HTTP responses and error management in a consistent and type-safe way.
 
-A Python library for handling responses and errors in a consistent way.
+## Features
 
-## Overview
-
-This library provides a set of tools for handling responses and errors in a consistent way across your application. It includes:
-
-- `Either` monad for intermediate error handling
-- `Response` class for final response formatting
-- `ErrorItem` for error representation
-- Predefined error codes and messages
+- **Type-safe Response Handling**: Built with Pydantic for robust data validation and serialization
+- **Either Pattern**: Functional error handling with `Either` type for success/failure cases
+- **HTTP Status Code Management**: Automatic status code mapping based on error types
+- **Context Support**: Add contextual information to responses and errors
+- **JSON Serialization**: Built-in JSON serialization with customizable output
+- **OpenAPI/Swagger Support**: Automatic schema generation for API documentation
 
 ## Installation
 
 ```bash
-pip install response_handler_lib
+pip install response-handler
 ```
 
-## Usage
-
-### Error Handling with Either
-
-The `Either` monad is used for intermediate error handling in your business logic:
+## Quick Start
 
 ```python
-from response_handler_lib.either import Either, Success, Failure, ErrorItem
+from response_handler_lib import Response, Either, Success, Failure, ErrorItem
 
-def process_data(data: dict) -> Either:
-    if not data.get("required_field"):
-        return Failure([
-            ErrorItem.create(
-                code="VAL_MISSING_FIELD",
-                message="Required field is missing",
-                context={"field": "required_field"}
-            )
-        ])
-    return Success(processed_data)
-```
+# Create a successful response
+response = Response(data={"message": "Hello, World!"})
+print(response.to_json())
+# Output: {"data": {"message": "Hello, World!"}, "errors": [], "context": {}, "status_code": 200}
 
-### Final Response Formatting
+# Create a response with an error
+error = ErrorItem.create("VAL_ERROR", "Invalid input")
+response = Response(errors=[error])
+print(response.to_json())
+# Output: {"data": null, "errors": [{"code": "VAL_ERROR", "message": "Invalid input", "where": null}], "context": {}, "status_code": 400}
 
-The `Response` class is used to format the final output:
+# Use Either for functional error handling
+def process_data(data):
+    if not data:
+        return Failure([ErrorItem.create("VAL_ERROR", "Data is required")])
+    return Success({"processed": data})
 
-```python
-from response_handler_lib.response import Response
-from response_handler_lib.either import Either
-
-# Convert from Either to Response
-either = process_data(data)
+# Convert Either to Response
+either = process_data(None)
 response = Response.from_either(either)
-
-# Get the response as a dictionary
-result = response.to_dict()
-# {
-#     "status_code": 400,
-#     "data": null,
-#     "errors": [
-#         {
-#             "code": "VAL_MISSING_FIELD",
-#             "message": "Required field is missing",
-#             "where": "file.py, process_data, line 10"
-#         }
-#     ],
-#     "context": {
-#         "field": "required_field"
-#     }
-# }
-
-# Get the response as JSON
-json_response = response.to_json()
+print(response.to_json())
+# Output: {"data": null, "errors": [{"code": "VAL_ERROR", "message": "Data is required", "where": null}], "context": {}, "status_code": 400}
 ```
 
-## API Reference
+## Error Types and Status Codes
 
-### Either
+The library automatically maps error types to appropriate HTTP status codes:
 
-- `Success(value)`: Creates a successful result
-- `Failure(errors)`: Creates a failed result with errors
-- `ErrorItem.create(code, message, where=None, context=None)`: Creates an error item
+- `VAL_ERROR` → 400 (Bad Request)
+- `AUTH_ERROR` → 401 (Unauthorized)
+- `FORB_ERROR` → 403 (Forbidden)
+- `NOT_ERROR` → 404 (Not Found)
+- `TIM_ERROR` → 408 (Request Timeout)
+- `INT_ERROR` → 500 (Internal Server Error)
 
-### Response
+## Configuration
 
-- `Response(data=None, errors=None, context=None, status_code=200)`: Creates a response
-- `Response.from_either(either)`: Creates a response from an Either
-- `to_dict(include_where=False)`: Converts the response to a dictionary
-- `to_json(include_where=False)`: Converts the response to a JSON string
+```python
+from response_handler_lib import Config
+
+# Enable context in JSON output
+Config.ENABLE_CONTEXT_IN_JSON = True
+
+# Enable 'where' field in error output
+Config.ENABLE_WHERE_IN_JSON = True
+
+# Enable logging
+Config.ENABLE_LOGS = True
+```
+
+## Pydantic Integration
+
+The library uses Pydantic for data validation and serialization. This provides:
+
+- Automatic data validation
+- Type checking
+- JSON schema generation
+- OpenAPI/Swagger integration
+- Efficient serialization/deserialization
+
+Example of Pydantic features:
+
+```python
+from response_handler_lib import Response
+from pydantic import ValidationError
+
+# Automatic validation
+try:
+    response = Response(status_code=999)  # Will raise ValidationError
+except ValidationError as e:
+    print(e)
+
+# JSON schema generation
+print(Response.model_json_schema())
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-Author: Angel Kürten  
-Email: angel@angelkurten.com  
-GitHub: [angelkurten](https://github.com/angelkurten)
+This project is licensed under the MIT License - see the LICENSE file for details.

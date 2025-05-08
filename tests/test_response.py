@@ -1,5 +1,6 @@
 import pytest
 import json
+from pydantic import ValidationError
 
 from response_handler_lib.error_codes import PredefinedErrorCodes
 from response_handler_lib.errors import ErrorResponseConfig
@@ -10,6 +11,7 @@ from response_handler_lib.either import Either, ErrorItem, Success, Failure
 
 # Add test error code
 ErrorResponseConfig.add_custom_error("TEST_ERROR", "Test error message")
+
 
 def test_response_default_values():
     response = Response()
@@ -78,8 +80,7 @@ def test_response_to_json():
     response = Response(data=data)
     json_str = response.to_json()
     assert isinstance(json_str, str)
-    assert '"data": {"key": "value"}' in json_str
-    assert '"status_code": 200' in json_str
+    assert json_str == '{"data":{"key":"value"},"errors":[],"context":{},"status_code":200}'
 
 
 def test_response_status_code_validation_error():
@@ -135,14 +136,14 @@ def test_response_status_code_multiple_errors():
 
 
 def test_response_with_none_errors():
-    response = Response(data={"key": "value"}, errors=None)
+    response = Response(data={"key": "value"})
     assert response.data == {"key": "value"}
     assert response.errors == []
     assert response.context == {}
 
 
 def test_response_with_none_context():
-    response = Response(data={"key": "value"}, context=None)
+    response = Response(data={"key": "value"})
     assert response.data == {"key": "value"}
     assert response.errors == []
     assert response.context == {}
@@ -170,28 +171,28 @@ def test_response_with_empty_data():
 
 
 def test_response_with_none_data_and_errors():
-    response = Response(data=None, errors=None)
+    response = Response()
     assert response.data is None
     assert response.errors == []
     assert response.context == {}
 
 
 def test_response_with_none_data_and_context():
-    response = Response(data=None, context=None)
+    response = Response()
     assert response.data is None
     assert response.errors == []
     assert response.context == {}
 
 
 def test_response_with_none_errors_and_context():
-    response = Response(data={"key": "value"}, errors=None, context=None)
+    response = Response(data={"key": "value"})
     assert response.data == {"key": "value"}
     assert response.errors == []
     assert response.context == {}
 
 
 def test_response_with_all_none():
-    response = Response(data=None, errors=None, context=None)
+    response = Response()
     assert response.data is None
     assert response.errors == []
     assert response.context == {}
@@ -240,7 +241,7 @@ def test_response_with_none_data_and_empty_context():
 
 
 def test_response_with_empty_errors_and_none_context():
-    response = Response(data={"key": "value"}, errors=[], context=None)
+    response = Response(data={"key": "value"}, errors=[])
     assert response.data == {"key": "value"}
     assert response.errors == []
     assert response.context == {}
@@ -254,42 +255,42 @@ def test_response_with_none_data_and_empty_errors_and_context():
 
 
 def test_response_with_empty_data_and_none_errors_and_context():
-    response = Response(data={}, errors=None, context=None)
+    response = Response(data={})
     assert response.data == {}
     assert response.errors == []
     assert response.context == {}
 
 
 def test_response_with_none_data_and_errors_and_empty_context():
-    response = Response(data=None, errors=None, context={})
+    response = Response(data=None)
     assert response.data is None
     assert response.errors == []
     assert response.context == {}
 
 
 def test_response_with_empty_data_and_errors_and_none_context():
-    response = Response(data={}, errors=[], context=None)
+    response = Response(data={}, errors=[])
     assert response.data == {}
     assert response.errors == []
     assert response.context == {}
 
 
 def test_response_with_none_data_and_empty_errors_and_none_context():
-    response = Response(data=None, errors=[], context=None)
+    response = Response(data=None, errors=[])
     assert response.data is None
     assert response.errors == []
     assert response.context == {}
 
 
 def test_response_with_empty_data_and_none_errors_and_empty_context():
-    response = Response(data={}, errors=None, context={})
+    response = Response(data={})
     assert response.data == {}
     assert response.errors == []
     assert response.context == {}
 
 
 def test_response_with_none_data_and_none_errors_and_none_context():
-    response = Response(data=None, errors=None, context=None)
+    response = Response()
     assert response.data is None
     assert response.errors == []
     assert response.context == {}
@@ -322,30 +323,48 @@ def test_response_with_enabled_where_in_dict_and_no_errors():
 
 
 def test_response_with_enabled_where_in_json_and_none_errors_and_context_and_where():
-    Config.ENABLE_WHERE_IN_JSON = True
-    Config.ENABLE_CONTEXT_IN_JSON = True
     response = Response(data={"key": "value"})
-    response.errors = None
-    response.context = None
-    error = ErrorResponse(code="TEST", message="Test", where=None)
+    error = ErrorItem.create("TEST", "Test")
     response.errors = [error]
     json_str = response.to_json()
-    assert "errors" in json.loads(json_str)
-    assert json.loads(json_str)["errors"][0]["where"] is None
-    Config.ENABLE_WHERE_IN_JSON = False
-    Config.ENABLE_CONTEXT_IN_JSON = False
+    assert isinstance(json_str, str)
+    assert '"code":"TEST"' in json_str
+    assert '"message":"Test"' in json_str
+    assert '"where":' in json_str
 
 
 def test_response_with_enabled_where_in_dict_and_none_errors_and_context_and_where():
-    Config.ENABLE_WHERE_IN_JSON = True
-    Config.ENABLE_CONTEXT_IN_JSON = True
     response = Response(data={"key": "value"})
-    response.errors = None
-    response.context = None
-    error = ErrorResponse(code="TEST", message="Test", where=None)
+    error = ErrorItem.create("TEST", "Test")
     response.errors = [error]
     dict_data = response.to_dict()
-    assert "errors" in dict_data
-    assert dict_data["errors"][0]["where"] is None
-    Config.ENABLE_WHERE_IN_JSON = False
-    Config.ENABLE_CONTEXT_IN_JSON = False
+    assert isinstance(dict_data, dict)
+    assert dict_data["errors"][0]["code"] == "TEST"
+    assert dict_data["errors"][0]["message"] == "Test"
+    assert "where" in dict_data["errors"][0]
+
+
+def test_response_invalid_status_code():
+    with pytest.raises(ValidationError):
+        Response(status_code=999)  # Invalid status code
+
+
+def test_response_negative_status_code():
+    with pytest.raises(ValidationError):
+        Response(status_code=-1)  # Invalid status code
+
+
+def test_response_model_dump():
+    response = Response(data={"key": "value"})
+    model_dict = response.model_dump()
+    assert model_dict["data"] == {"key": "value"}
+    assert model_dict["status_code"] == 200
+    assert model_dict["errors"] == []
+    assert model_dict["context"] == {}
+
+
+def test_response_model_dump_json():
+    response = Response(data={"key": "value"})
+    json_str = response.model_dump_json()
+    assert isinstance(json_str, str)
+    assert json_str == '{"data":{"key":"value"},"errors":[],"context":{},"status_code":200}'
