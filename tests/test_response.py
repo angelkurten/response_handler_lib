@@ -76,11 +76,13 @@ def test_response_to_dict_error():
 
 
 def test_response_to_json():
+    Config.ENABLE_CONTEXT_IN_JSON = True
     data = {"key": "value"}
     response = Response(data=data)
     json_str = response.to_json()
     assert isinstance(json_str, str)
     assert json_str == '{"data":{"key":"value"},"errors":[],"context":{},"status_code":200}'
+    Config.ENABLE_CONTEXT_IN_JSON = False
 
 
 def test_response_status_code_validation_error():
@@ -323,6 +325,7 @@ def test_response_with_enabled_where_in_dict_and_no_errors():
 
 
 def test_response_with_enabled_where_in_json_and_none_errors_and_context_and_where():
+    Config.ENABLE_WHERE_IN_JSON = True
     response = Response(data={"key": "value"})
     error = ErrorItem.create("TEST", "Test")
     response.errors = [error]
@@ -331,9 +334,11 @@ def test_response_with_enabled_where_in_json_and_none_errors_and_context_and_whe
     assert '"code":"TEST"' in json_str
     assert '"message":"Test"' in json_str
     assert '"where":' in json_str
+    Config.ENABLE_WHERE_IN_JSON = False
 
 
 def test_response_with_enabled_where_in_dict_and_none_errors_and_context_and_where():
+    Config.ENABLE_WHERE_IN_JSON = True
     response = Response(data={"key": "value"})
     error = ErrorItem.create("TEST", "Test")
     response.errors = [error]
@@ -342,6 +347,7 @@ def test_response_with_enabled_where_in_dict_and_none_errors_and_context_and_whe
     assert dict_data["errors"][0]["code"] == "TEST"
     assert dict_data["errors"][0]["message"] == "Test"
     assert "where" in dict_data["errors"][0]
+    Config.ENABLE_WHERE_IN_JSON = False
 
 
 def test_response_invalid_status_code():
