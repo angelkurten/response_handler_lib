@@ -1,5 +1,8 @@
 # Response Handler
 
+[![Coverage Status](https://coveralls.io/repos/github/angelkurten/response_handler/badge.svg?branch=main)](https://coveralls.io/github/angelkurten/response_handler?branch=main)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/response_handler_lib)
+
 A Python library for handling HTTP responses and error management in a consistent and type-safe way.
 
 ## Features
@@ -14,7 +17,7 @@ A Python library for handling HTTP responses and error management in a consisten
 ## Installation
 
 ```bash
-pip install response-handler
+pip install response_handler_lib
 ```
 
 ## Quick Start
@@ -108,4 +111,10 @@ print(Response.model_json_schema())
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Contact
+
+Author: Angel Kürten  
+Email: angel@angelkurten.com  
+GitHub: [angelkurten](https://github.com/angelkurten/response_handler)
