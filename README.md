@@ -1,256 +1,97 @@
-# response_handler_lib
+# Response Handler Library
 
-[![Coverage Status](https://coveralls.io/repos/github/angelkurten/response_handler/badge.svg?branch=main)](https://coveralls.io/github/angelkurten/response_handler?branch=main)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/response_handler_lib)
+A Python library for handling responses and errors in a consistent way.
 
+## Overview
 
-A package for handling responses with potential errors and generic data, including predefined and custom error handling. This package is used as a complement to exceptions to have more control over business logic errors.
+This library provides a set of tools for handling responses and errors in a consistent way across your application. It includes:
 
-## Features
-
-- Custom `Response` class for handling responses with errors and data.
-- Custom `ErrorResponse` class for defining error codes and messages.
-- `ErrorResponseConfig` class for managing predefined and custom error configurations.
-- `PredefinedErrorCodes` enum for predefined error codes.
-- Utilities for adding errors, checking for errors, and retrieving error messages and codes.
-- HTTP Interceptor class for handling HTTP requests and responses with built-in error handling.
-- Convert `Response` to JSON format.
-- Customizable logger for error reporting.
-- Add context information to responses.
-- Enable or disable context and error location (`where`) in JSON output.
+- `Either` monad for intermediate error handling
+- `Response` class for final response formatting
+- `ErrorItem` for error representation
+- Predefined error codes and messages
 
 ## Installation
 
-You can install `response_handler_lib` via pip:
-
-```sh
+```bash
 pip install response_handler_lib
 ```
 
 ## Usage
 
-### Importing the Package
+### Error Handling with Either
 
-To use the `Response` class and related utilities, import them from the `response_handler_lib` package:
+The `Either` monad is used for intermediate error handling in your business logic:
 
 ```python
-from response_handler_lib.error_codes import PredefinedErrorCodes
+from response_handler_lib.either import Either, Success, Failure, ErrorItem
+
+def process_data(data: dict) -> Either:
+    if not data.get("required_field"):
+        return Failure([
+            ErrorItem.create(
+                code="VAL_MISSING_FIELD",
+                message="Required field is missing",
+                context={"field": "required_field"}
+            )
+        ])
+    return Success(processed_data)
+```
+
+### Final Response Formatting
+
+The `Response` class is used to format the final output:
+
+```python
 from response_handler_lib.response import Response
+from response_handler_lib.either import Either
+
+# Convert from Either to Response
+either = process_data(data)
+response = Response.from_either(either)
+
+# Get the response as a dictionary
+result = response.to_dict()
+# {
+#     "status_code": 400,
+#     "data": null,
+#     "errors": [
+#         {
+#             "code": "VAL_MISSING_FIELD",
+#             "message": "Required field is missing",
+#             "where": "file.py, process_data, line 10"
+#         }
+#     ],
+#     "context": {
+#         "field": "required_field"
+#     }
+# }
+
+# Get the response as JSON
+json_response = response.to_json()
 ```
-
-### Configuring the Package
-
-You can configure various aspects of the package, such as logger:
-
-```python
-# Configure a custom logger
-custom_logger = logging.getLogger("custom_logger")
-custom_logger.setLevel(logging.DEBUG)
-config.configure_logger(custom_logger)
-
-# Enable or disable logging
-config.enable_logs(True)  # Enable logging
-config.enable_logs(False)  # Disable logging
-
-# Enable or disable context in JSON output
-config.enable_context_in_json(True)  # Enable context
-config.enable_context_in_json(False)  # Disable context
-
-# Enable or disable error location (`where`) in JSON output
-config.enable_where_in_json(True)  # Enable where
-config.enable_where_in_json(False)  # Disable where
-```
-
-### Creating a Successful Response
-
-Create a `Response` object and provide any data:
-
-```python
-response = Response(data="Some data")
-if not response.has_errors:
-    print("Response is successful")
-    print("Data:", response.data)
-```
-
-### Adding Context to a Response
-
-Add context information to a `Response` object:
-
-```python
-response = Response(data="Some data")
-response.add_context("user", {"id": 1, "name": "John Doe"})
-print(response.to_json())
-```
-
-### Creating a Failed Response with Predefined Errors
-
-Add predefined errors to a response using the `add_error` method:
-
-```python
-response = Response()
-response.add_error(PredefinedErrorCodes.VAL_ERR.value)
-response.add_error(PredefinedErrorCodes.NOT_FND.value)
-
-if response.has_errors:
-    print("Errors:")
-    for code, message in zip(response.error_types, response.error_messages):
-        print(f"Error {code}: {message}")
-```
-
-### Adding Custom Errors to the Configuration
-
-Add custom errors to the `ErrorResponseConfig`:
-
-```python
-ErrorResponseConfig.add_custom_error("CUS_ERR1", "Custom error message 1.")
-ErrorResponseConfig.add_custom_error("CUS_ERR2", "Custom error message 2.")
-```
-
-### Creating a Failed Response with Custom Errors
-
-Add custom errors to a response using the `add_error` method:
-
-```python
-response = Response()
-response.add_error("CUS_ERR1")
-response.add_error("CUS_ERR2")
-
-if response.has_errors:
-    print("Errors:")
-    for code, message in zip(response.error_types, response.error_messages):
-        print(f"Error {code}: {message}")
-```
-
-### Adding Multiple Custom Errors at Once
-
-Add multiple custom errors to the `ErrorResponseConfig`:
-
-```python
-custom_errors = {
-    "CUS_ERR3": "Custom error message 3.",
-    "CUS_ERR4": "Custom error message 4."
-}
-
-ErrorResponseConfig.add_custom_errors(custom_errors)
-```
-
-### Handling Undefined Errors
-
-Attempting to add an undefined error raises a `ValueError`:
-
-```python
-response = Response()
-
-try:
-    response.add_error("NOT_DEFINED")
-except ValueError as e:
-    print("Caught an error:", str(e))
-```
-
-### Converting a Response to JSON
-
-Convert a `Response` object to JSON format using the `to_json` method:
-
-```python
-response = Response(data="Some data")
-response.add_error("VAL_ERR")
-print(response.to_json())
-```
-
-### Including `where` in the JSON Output
-
-Convert a `Response` object to JSON format, optionally including the `where` property:
-
-```python
-response = Response(data="Some data")
-response.add_error("VAL_ERR")
-print(response.to_json(include_where=True))
-```
-### Using the HTTPInterceptor
-
-The `HTTPInterceptor` class is designed to handle HTTP requests and responses with built-in error handling. Here is how to use it:
-
-```python
-interceptor = HTTPInterceptor()
-
-# Successful GET request
-response_json = interceptor.request('GET', 'https://jsonplaceholder.typicode.com/posts/1')
-print(response_json)
-
-# Handling a 404 Not Found error
-response_json = interceptor.request('GET', 'https://jsonplaceholder.typicode.com/invalid-endpoint')
-print(response_json)
-
-```
-
 
 ## API Reference
 
-### Classes
+### Either
 
-#### `Response`
+- `Success(value)`: Creates a successful result
+- `Failure(errors)`: Creates a failed result with errors
+- `ErrorItem.create(code, message, where=None, context=None)`: Creates an error item
 
-A generic class for handling responses.
+### Response
 
-##### Attributes:
-
-- `errors` (`Optional[List[ErrorResponse]]`): A list of errors in the response.
-- `data` (`Optional[T]`): The data in the response.
-- `context` (`Optional[Dict[str, Any]]`): Additional context information.
-
-##### Methods:
-
-- `add_error(error_code: str)`: Adds an error to the response.
-- `has_errors` (`bool`): Checks if the response has errors.
-- `error_messages` (`List[str]`): Retrieves a list of error messages.
-- `error_types` (`List[str]`): Retrieves a list of error codes.
-- `to_json(include_where: bool = False)`: Converts the response to JSON format, optionally including the `where` property.
-- `add_context(key: str, value: Any)`: Adds context information to the response.
-
-#### `ErrorResponse`
-
-A class for defining error codes and messages.
-
-##### Attributes:
-
-- `code` (`str`): The error code.
-- `message` (`str`): The error message.
-- `where` (`Optional[str]`): The location where the error was generated.
-
-#### `ErrorResponseConfig`
-
-A class for managing predefined and custom error configurations.
-
-##### Methods:
-
-- `add_custom_error(code: str, message: str)`: Adds a custom error to the configuration.
-- `add_custom_errors(errors: Dict[str, str])`: Adds multiple custom errors to the configuration.
-- `get_error(code: str)`: Retrieves an error by code.
-
-#### `PredefinedErrorCodes`
-
-An enum for predefined error codes.
-
-#### HTTPInterceptor
-
-A class for handling HTTP requests and responses with built-in error handling.
-
-##### Methods:
-
-- `request(method: str, url: str, **kwargs)`: Sends an HTTP request and returns the response JSON.
-- `handle_http_error(http_err: HTTPError, resp)`: Handles HTTP errors based on status code.
-- `handle_generic_error(err: Exception)`: Handles generic errors.
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request on GitHub.
+- `Response(data=None, errors=None, context=None, status_code=200)`: Creates a response
+- `Response.from_either(either)`: Creates a response from an Either
+- `to_dict(include_where=False)`: Converts the response to a dictionary
+- `to_json(include_where=False)`: Converts the response to a JSON string
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT
 
 ## Contact
 
-Author: Angel Kürten  
-Email: angel@angelkurten.com  
-GitHub: [angelkurten](https://github.com/angelkurten/response_handler)
+Your Name - your.email@example.com
+
+Project Link: [https://github.com/yourusername/response-handler](https://github.com/yourusername/response-handler)

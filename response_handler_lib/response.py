@@ -1,97 +1,91 @@
 import os
 from dataclasses import dataclass, asdict
-from typing import List, Optional, Generic, TypeVar, Dict, Any
+from typing import List, Optional, Generic, TypeVar, Dict, Any, Union
 import json
-import inspect
 
 from response_handler_lib.config import Config
-from response_handler_lib.errors import ErrorResponse, ErrorResponseConfig
+from response_handler_lib.either import Either, ErrorItem, Success, Failure
 
 T = TypeVar('T')
 
 
 @dataclass
 class Response(Generic[T]):
-    errors: Optional[List[ErrorResponse]] = None
+    """
+    A class representing a final response, typically used for HTTP responses.
+    This class is designed to be the final output format, while Either is used
+    for intermediate error handling in the business logic layers.
+    """
+    errors: Optional[List[ErrorItem]] = None
     data: Optional[T] = None
     context: Optional[Dict[str, Any]] = None
+    status_code: int = 200
 
-    def add_error(self, error_code: str):
-        """Add an error to the response."""
-        error = ErrorResponseConfig.get_error(error_code)
-        if not error:
-            raise ValueError(f"Error code '{error_code}' not defined.")
-
-        frame = inspect.currentframe().f_back
-        filename = os.path.basename(frame.f_globals["__file__"])
-        line_number = frame.f_lineno
-        class_name = frame.f_locals.get("self", None).__class__.__name__ if "self" in frame.f_locals else None
-        method_name = frame.f_code.co_name
-
-        location = f"{filename}, {class_name}.{method_name}, line {line_number}" \
-            if class_name \
-            else \
-            f"{filename}, {method_name}, line {line_number}"
-
-        error_instance = ErrorResponse(code=error.code, message=error.message, where=location)
-
+    def __post_init__(self):
+        """Initialize default values after dataclass initialization."""
         if self.errors is None:
             self.errors = []
-        self.errors.append(error_instance)
-
-        if Config.ENABLE_LOGS:
-            Config.LOGGER.error(
-                f"Error added:\n"
-                f"  Code: {error_instance.code}\n"
-                f"  Message: {error_instance.message}\n"
-                f"  Location: {error_instance.where}\n"
-                f"  Context: {self.context if self.context else 'None'}"
-            )
-
-    @property
-    def has_errors(self) -> bool:
-        """Check if the response has errors."""
-        return bool(self.errors)
-
-    @property
-    def error_messages(self) -> List[str]:
-        """Get a list of error messages."""
-        return [err.message for err in self.errors] if self.has_errors else []
-
-    @property
-    def error_types(self) -> List[str]:
-        """Get a list of error types."""
-        return [err.code for err in self.errors] if self.has_errors else []
-
-    def add_context(self, key: str, value: Any):
-        """Add context information to the response."""
         if self.context is None:
             self.context = {}
-        self.context[key] = value
+        # Update status code if there are errors
+        if self.errors:
+            self._update_status_code(self.errors[0].code)
 
-    def to_json(self, include_where: bool = False) -> str:
-        """Convert the response to JSON format."""
-        response_dict = asdict(self)
-        response_dict['errors'] = response_dict['errors'] if self.errors is not None else []
-        if not Config.ENABLE_CONTEXT_IN_JSON:
-            response_dict.pop('context', None)
-
-        if not include_where and not Config.ENABLE_WHERE_IN_JSON:
-            for error in response_dict['errors']:
-                error.pop('where', None)
-
-        return json.dumps(response_dict, default=str)
+    def _update_status_code(self, error_code: str) -> None:
+        """Update status code based on error type."""
+        if error_code.startswith('VAL_'):
+            self.status_code = 400  # Bad Request
+        elif error_code.startswith('AUTH_'):
+            self.status_code = 401  # Unauthorized
+        elif error_code.startswith('FORB_'):
+            self.status_code = 403  # Forbidden
+        elif error_code.startswith('NOT_'):
+            self.status_code = 404  # Not Found
+        elif error_code.startswith('TIM_'):
+            self.status_code = 408  # Request Timeout
+        elif error_code.startswith('INT_'):
+            self.status_code = 500  # Internal Server Error
+        else:
+            self.status_code = 400  # Default to Bad Request
 
     def to_dict(self, include_where: bool = False) -> dict:
         """Convert the response to a dictionary format."""
-        response_dict = asdict(self)
-        response_dict['errors'] = response_dict['errors'] if self.errors is not None else []
+        result = {
+            "status_code": self.status_code,
+            "data": self.data,
+            "errors": [
+                {
+                    "code": error.code,
+                    "message": error.message,
+                    "where": error.where if include_where or Config.ENABLE_WHERE_IN_JSON else None
+                }
+                for error in self.errors
+            ]
+        }
+        if Config.ENABLE_CONTEXT_IN_JSON and self.context:
+            result["context"] = self.context
+        return result
 
-        if not Config.ENABLE_CONTEXT_IN_JSON:
-            response_dict.pop('context', None)
+    def to_json(self, include_where: bool = False) -> str:
+        """Convert the response to JSON format."""
+        return json.dumps(self.to_dict(include_where), default=str)
 
-        if not include_where and not Config.ENABLE_WHERE_IN_JSON:
-            for error in response_dict['errors']:
-                error.pop('where', None)
-
-        return response_dict
+    @classmethod
+    def from_either(cls, either: Either) -> 'Response':
+        """
+        Create a Response from an Either.
+        This is useful when converting from intermediate error handling
+        to a final response format.
+        """
+        if isinstance(either, Success):
+            return cls(data=either._value)
+        elif isinstance(either, Failure):
+            response = cls()
+            for error in either._errors:
+                response.errors.append(error)
+                if error.context:
+                    response.context.update(error.context)
+                response._update_status_code(error.code)
+            return response
+        else:
+            raise ValueError("Invalid Either type")

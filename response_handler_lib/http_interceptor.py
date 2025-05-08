@@ -1,44 +1,77 @@
 import logging
-
 import requests
-from requests.exceptions import HTTPError
+from requests.exceptions import HTTPError, JSONDecodeError
+from typing import Optional, Dict, Any, Union
 
 from response_handler_lib.config import Config
 from response_handler_lib.error_codes import PredefinedErrorCodes
-from response_handler_lib.response import Response
+from response_handler_lib.either import Either, ErrorItem, Success, Failure
 
 
 class HTTPInterceptor:
     def __init__(self, include_where=False):
         self.include_where = include_where
-        self.response = Response()
+        self.session = requests.Session()
 
-    def request(self, method, url, **kwargs):
-        resp = None
+    def request(
+        self,
+        method: str,
+        url: str,
+        params: Optional[Dict[str, Any]] = None,
+        data: Optional[Dict[str, Any]] = None,
+        json: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        timeout: int = 30
+    ) -> Either[ErrorItem, Any]:
         try:
-            resp = requests.request(method, url, **kwargs)
+            resp = self.session.request(
+                method=method,
+                url=url,
+                params=params,
+                json=json or data,
+                headers=headers,
+                timeout=timeout
+            )
             resp.raise_for_status()
-            if resp.status_code != 204:
-                self.response.data = resp.json()
-        except HTTPError as http_err:
-            self.handle_http_error(http_err, resp)
+            
+            # Si la respuesta está vacía, devolver un diccionario vacío
+            if not resp.content:
+                return Success({})
+                
+            try:
+                return Success(resp.json())
+            except JSONDecodeError:
+                # Si no es JSON, devolver el texto de la respuesta
+                return Success({"text": resp.text})
+                
+        except requests.exceptions.RequestException as err:
+            return self.handle_request_error(err)
         except Exception as err:
-            self.handle_generic_error(err)
-        return self.response.to_json()
+            return self.handle_generic_error(err)
 
-    def handle_http_error(self, http_err, resp):
-        if resp.status_code == 400:
-            self.response.add_error(PredefinedErrorCodes.BAD_REQUEST.value)
-        elif resp.status_code == 404:
-            self.response.add_error(PredefinedErrorCodes.NOT_FOUND.value)
-        elif resp.status_code == 500:
-            self.response.add_error(PredefinedErrorCodes.INTERNAL_ERROR.value)
+    def handle_request_error(self, err: requests.exceptions.RequestException) -> Either[ErrorItem, Any]:
+        if isinstance(err, requests.exceptions.ConnectionError):
+            return Failure(ErrorItem.create(PredefinedErrorCodes.BAD_REQUEST, str(err)))
+        elif isinstance(err, requests.exceptions.Timeout):
+            return Failure(ErrorItem.create(PredefinedErrorCodes.BAD_REQUEST, str(err)))
+        elif isinstance(err, requests.exceptions.HTTPError):
+            if err.response.status_code == 401:
+                return Failure(ErrorItem.create(PredefinedErrorCodes.AUTHENTICATION_ERROR, str(err)))
+            elif err.response.status_code == 403:
+                return Failure(ErrorItem.create(PredefinedErrorCodes.FORBIDDEN, str(err)))
+            elif err.response.status_code == 404:
+                return Failure(ErrorItem.create(PredefinedErrorCodes.NOT_FOUND, str(err)))
+            elif err.response.status_code == 422:
+                return Failure(ErrorItem.create(PredefinedErrorCodes.VALIDATION_ERROR, str(err)))
+            elif err.response.status_code >= 500:
+                return Failure(ErrorItem.create(PredefinedErrorCodes.INTERNAL_ERROR, str(err)))
+            else:
+                return Failure(ErrorItem.create(PredefinedErrorCodes.BAD_REQUEST, str(err)))
         else:
-            self.response.add_error(PredefinedErrorCodes.INTERNAL_ERROR.value)
-        if Config.ENABLE_LOGS:
-            Config.LOGGER.error(f"HTTP error occurred: {http_err}")
+            return Failure(ErrorItem.create(PredefinedErrorCodes.BAD_REQUEST, str(err)))
 
-    def handle_generic_error(self, err):
-        self.response.add_error(PredefinedErrorCodes.INTERNAL_ERROR.value)
+    def handle_generic_error(self, err: Exception) -> Either[ErrorItem, Any]:
         if Config.ENABLE_LOGS:
-            Config.LOGGER.error(f"HTTP error occurred: {err}")
+            Config.LOGGER.error(f"Generic error occurred: {err}")
+
+        return Failure(ErrorItem.create(PredefinedErrorCodes.INTERNAL_ERROR, str(err)))
